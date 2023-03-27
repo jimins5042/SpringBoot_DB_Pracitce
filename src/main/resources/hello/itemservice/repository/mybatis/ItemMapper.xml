@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--ItemMapper의 위치를 적어줌-->
+<mapper namespace="hello.itemservice.repository.mybatis.ItemMapper">
+
+    <!--아이템 객체의 속성 값들을 넣어줌-->
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into item(item_name, price, quantity)
+        values (#{itemName}, #{price}, #{quantity})
+    </insert>
+
+    <update id="update">
+        update item
+        set item_name=#{updateParam.itemName},
+            price=#{updateParam.price},
+            quantity=#{updateParam.quantity}
+        where id = #{id}
+    </update>
+
+    <!--resultType: 조회하는 item의 경로를 적어주어야 하나, application.properties에 경로를 넣어준만큼 생략가능-->
+    <select id="findById" resultType="Item">
+        select id, item_name, price, quantity
+        from item
+        where id = #{id}
+    </select>
+
+    <select id="findAll" resultType="Item">
+
+        select id, item_name, price, quantity
+        from item
+        <where>
+            <if test="itemName != null and itemName != ''">
+                and item_name like concat('%', #{itemName}, '%')
+            </if>
+            <if test="maxPrice != null">
+                and price &lt;= #{maxprice}
+            </if>
+
+        </where>
+    </select>
+
+</mapper>
