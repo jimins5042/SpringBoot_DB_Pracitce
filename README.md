@@ -600,3 +600,199 @@ spring.datasource.username=sa
 spring.datasource.password=
 ~~~
 - 스프링부트는 HikariDataSource를 기본으로 사용한다.
+
+
+
+# 마이바티스 기초 설정
+
+grade에 추가
+~~~
+//마이바티스 추가
+	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:2.2.0'
+~~~
+
+application.properties에 추가
+~~~
+#패키지 위치 생략 가능
+mybatis.type-aliases-package=hello.itemservice.domain
+
+#객체 이름을 낙타표시법으로 바꿔줌
+mybatis.configuration.map-underscore-to-camel-case=true
+logging.level.hello.itemservice.repository.mybatis=trace
+~~~
+
+# ItemMapper와 XML 파일
+
+## ItemMapper 등록
+~~~
+@Mapper
+public interface ItemMapper {
+    void save(Item item);
+
+    //파라미터가 두개인 경우 @Param을 사용해 주어야함
+    void update(@Param("id") Long id, @Param("updateParam")ItemUpdateDto updateParam);
+
+    Optional<Item> findById(Long id);
+
+    List<Item> findAll(ItemSearchCond itemSearch);
+}
+~~~
+
+- @Mapper 어노테이션이 있어야 마이바티스에서 인식을 할 수 있다.
+
+- 이 인터페이스의 메소드를 호출하면, xml의 해당 SQL을 실행한후 결과값을 반환한다.
+따라서 인터페이스 메소드를 만들때 리턴 값과 메소드타입을 맞춰주어야 한다.
+
+## ItemMapper.xml
+
+~~~
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--ItemMapper의 위치를 적어줌-->
+<mapper namespace="hello.itemservice.repository.mybatis.ItemMapper">
+
+    <!--useGeneratedKeys는 자동으로 id값을 설정해주는 역활-->
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        <!--아이템 객체의 속성 값들을 넣어줌-->
+        insert into item(item_name, price, quantity)
+        values (#{itemName}, #{price}, #{quantity})
+    </insert>
+
+    <update id="update">
+        update item
+        set item_name=#{updateParam.itemName},
+            price=#{updateParam.price},
+            quantity=#{updateParam.quantity}
+        where id = #{id}
+    </update>
+
+    <!--resultType: 조회하는 item의 경로를 적어주어야 하나, application.properties에 경로를 넣어준만큼 생략가능-->
+    <select id="findById" resultType="Item">
+        select id, item_name, price, quantity
+        from item
+        where id = #{id}
+    </select>
+
+    <select id="findAll" resultType="Item">
+
+        select id, item_name, price, quantity
+        from item
+        <where>
+            <if test="itemName != null and itemName != ''">
+                and item_name like concat('%', #{itemName}, '%')
+            </if>
+            <if test="maxPrice != null">
+                and price &lt;= #{maxprice}
+            </if>
+
+        </where>
+    </select>
+
+</mapper>
+~~~
+- mapper namespace="매퍼 인터페이스의 경로"
+
+- sql의 'id'와 mapper 인터페이스의 메소드 이름이 같아야 한다.
+
+- useGeneratedKeys="true" keyProperty="id" 같은 경우, id의 값을 자동으로 설정해준다.
+
+- resultType="Item" 같은 경우 반환 타입을 적어주는 역활. 
+
+- 원래 select문을 쓸때 Item 객체의 패키지 위치를 다 적어주어야 하나, application.properties에 경로를 적어준 만큼 생략이 가능하다.
+
+- xml 파일의 위치는 Mapper 인터페이스가 있는 폴더의 위치와 동일하게 맞춰 주어야한다. 
+xml 파일을 원하는 위치에 두고 싶으면 application.properties 에 다음과 같이 설정하면 된다.
+> mybatis.mapper-locations=classpath:mapper/	&#42;	&#42;/	&#42;.xml
+
+- 이러면 resources/mapper 를 포함한 그 하위 폴더에 있는 xml을 xml 매핑 파일로 인식하며, 파일 이름도 자유롭게 지정해도 된다.
+- 마이바이트에서 동적쿼리는 <!where>, <!if>등의 동적쿼리 문법을 통해 구현한다.
+
+# 기타 설정들
+
+## MybatisItemRepository
+
+~~~
+@Repository
+@RequiredArgsConstructor
+public class MybatisItemRepository implements ItemRepository {
+
+    //mapper의 의존관계 구현체를 주입
+    private final ItemMapper itemMapper;
+
+    @Override
+    public Item save(Item item) {
+        itemMapper.save(item);
+        return item;
+    }
+
+    @Override
+    public void update(Long itemId, ItemUpdateDto updateParam) {
+        itemMapper.update(itemId, updateParam);
+    }
+
+    @Override
+    public Optional<Item> findById(Long id) {
+        return itemMapper.findById(id);
+    }
+
+    @Override
+    public List<Item> findAll(ItemSearchCond itemSearch) {
+        return itemMapper.findAll(itemSearch);
+    }
+}
+~~~
+
+- MybatisItemRepository는 ItemMapper에 기능을 위임한다
+
+## MyBatisConfig
+
+~~~
+@Configuration
+@RequiredArgsConstructor
+public class MyBatisConfig {
+    private final ItemMapper itemMapper;
+
+    @Bean
+    public ItemService itemService() {
+        return new ItemServiceV1(itemRepository());
+    }
+	//itemMapper를 주입받은 후, 필요한 의존 관계를 만든다.
+    @Bean
+    public ItemRepository itemRepository() {
+        return new MybatisItemRepository(itemMapper);
+    }
+}
+~~~
+
+## ItemServiceApplication
+
+~~~
+@Import(MyBatisConfig.class)	//메모리 컨픽을 임포트
+@SpringBootApplication(scanBasePackages = "hello.itemservice.web")
+public class ItemServiceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(ItemServiceApplication.class, args);
+	}
+
+	@Bean
+	@Profile("local")	//운영환경에 따라 설정정보를 변환하기 위해 등록한 프로필
+	public TestDataInit testDataInit(ItemRepository itemRepository) {
+		return new TestDataInit(itemRepository);
+	}
+}
+~~~
+
+- @Import(MyBatisConfig.class)	//메모리 컨픽을 임포트
+
+# 마이바티스 분석
+
+![](https://velog.velcdn.com/images/2jooin1207/post/f6cec079-e520-41fd-8d93-27cc1a945cbc/image.PNG)
+
+
+1. 애플리케이션 로딩 시점에 MyBatis 스프링 연동 모듈은 @Mapper 가 붙어있는 인터페이스를 조사한다.
+2. 해당 인터페이스가 발견되면 동적 프록시 기술을 사용해서 ItemMapper 인터페이스의 구현체를 만든다.
+3. 생성된 구현체를 스프링 빈으로 등록한다.
+
+-> 따라서 ItemMapper 매퍼 인터페이스의 구현체가 없어도 xml을 편리하게 호출하고 구현할 수 있다.
