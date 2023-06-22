@@ -2,6 +2,8 @@
 
 공부 및 실습 정리
 
+[![Velog's GitHub stats](https://velog-readme-stats.vercel.app/api?name=2jooin1207&slug=스프링-db-1)](https://velog.io/@2jooin1207/%EC%8A%A4%ED%94%84%EB%A7%81-db-1)
+
 # JDBC
 
 > 자바에서 데이터베이스에 접속할 수 있게 하는 자바 API
