@@ -35,4 +35,9 @@ public class ItemServiceV1 implements ItemService {
     public List<Item> findItems(ItemSearchCond cond) {
         return itemRepository.findAll(cond);
     }
+
+    @Override
+    public void deleteItem(Long id) {
+        itemRepository.deleteItem(id);
+    }
 }

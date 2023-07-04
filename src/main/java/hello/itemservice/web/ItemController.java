@@ -16,16 +16,13 @@ import java.util.List;
 @RequestMapping("/items")
 @RequiredArgsConstructor
 public class ItemController {
-
     private final ItemService itemService;
-
     @GetMapping
     public String items(@ModelAttribute("itemSearch") ItemSearchCond itemSearch, Model model) {
         List<Item> items = itemService.findItems(itemSearch);
         model.addAttribute("items", items);
         return "items";
     }
-
     @GetMapping("/{itemId}")
     public String item(@PathVariable long itemId, Model model) {
         Item item = itemService.findById(itemId).get();
@@ -57,6 +54,13 @@ public class ItemController {
     public String edit(@PathVariable Long itemId, @ModelAttribute ItemUpdateDto updateParam) {
         itemService.update(itemId, updateParam);
         return "redirect:/items/{itemId}";
+    }
+
+    @GetMapping("/{itemId}/delete")
+    public String delete(@PathVariable Long itemId){
+        itemService.deleteItem(itemId);
+        return "redirect:/items";
+
     }
 
 }

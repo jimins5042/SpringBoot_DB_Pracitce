@@ -99,6 +99,11 @@ public class JdbcTemplateItemRepositoryV3 implements ItemRepository {
         return template.query(sql, param, itemRowMapper());
     }
 
+    @Override
+    public void deleteItem(Long id) {
+
+    }
+
     private RowMapper<Item> itemRowMapper() {
         return BeanPropertyRowMapper.newInstance(Item.class); //camel 변환 지원
     }

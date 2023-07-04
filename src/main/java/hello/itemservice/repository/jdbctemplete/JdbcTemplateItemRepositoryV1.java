@@ -102,4 +102,9 @@ public class JdbcTemplateItemRepositoryV1 implements ItemRepository {
         log.info("sql={}", sql);
         return template.query(sql, itemRowMapper(), param.toArray());
     }
+
+    @Override
+    public void deleteItem(Long id) {
+
+    }
 }
