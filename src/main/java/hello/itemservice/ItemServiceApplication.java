@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Profile;
 
 
 //@Import(JdbcTemplateV3Config.class)	//메모리 컨픽을 임포트
-@Import(JpaConfig.class)	//메모리 컨픽을 임포트
+@Import(QuerydslConfig.class)	//메모리 컨픽을 임포트
 @SpringBootApplication(scanBasePackages = "hello.itemservice.web")
 public class ItemServiceApplication {
 
